@@ -1,0 +1,243 @@
+\documentclass[10pt]{article}
+\usepackage[a4paper,left=2.5cm,top=2.5cm,bottom=2.5cm,right=2.5cm,ignoreheadfoot]{geometry}
+\usepackage[francais]{babel}
+\usepackage[utf8]{inputenc}
+\usepackage[usenames,dvipsnames]{xcolor}
+\usepackage{helvet}
+\usepackage[titletoc]{appendix}
+\usepackage{tocloft}
+\usepackage{graphicx}
+
+\setlength{\parindent}{0em}
+\setlength{\parskip}{.5em}
+
+\usepackage{sectsty}
+\sectionfont{\sffamily\bfseries\color{RoyalBlue}\sectionrule{0pt}{0pt}{-1ex}{1pt}}
+\subsectionfont{\sffamily\bfseries\color{RoyalBlue}}
+\subsubsectionfont{\sffamily\bfseries\color{RoyalBlue}}
+
+\usepackage{Sweave}
+\SweaveOpts{width=5.5,height=5.5,resolution=150}
+
+\author{Delphine Charif & Joseph Tran}
+
+\title{Manuel d'utilisation de ContigLink sur la base d'un exemple}
+
+\begin{document}
+\SweaveOpts{concordance=TRUE}
+
+\maketitle
+
+\begin{abstract}
+  L'assemblage de génomes mitochondriaux de plantes à partir de courtes séquences d'ADN ne peut pas permettre l'obtention 
+  d'un contig unique. En effet, plusieurs sous-génomes co-existent dans le cytoplasme avec des stoechiométries variables.
+  Les cercles les plus courts étant des fragments des cercles les plus longs avec de potentielles recombinaisons intra-génomique.
+  Ces dernières sont permises grâce aux répétitions présentes dans le génome de ces organites.\\ 
+  Celles-ci posent des problèmes méthodologiques. En effet, la longueur des répétitions que l'on pourra correctement assembler 
+  dans leur contexte va dépendre de la taille d'insert des courtes séquences pairées qui auront été obtenues. Celles-ci devront être
+  choisies de manière à couvrir toute la distribution de taille des répétitions.\\
+  Ces contraintes biologiques et méthodologiques impliquent que le résultat d'une experience d'assemblage doit être plutôt vue comme 
+  un graphe et non comme une solution linéaire. \\
+  Dans ce contexte, nous avons implémenté quelques fonctionnalités qui permettent de décrire et visualiser le résultat d'une expérience 
+  d'assemblage à partir de données de séquences pairées. 
+\end{abstract}
+
+\section{Méthode} 
+
+\subsection{Description}
+
+Au cours de l'assemblage, l'étape de scaffolding est celle qui consiste à aligner les séquences pairées qui ont permis de construire 
+les contigs sur ces derniers afin de relier les contigs entre elles. Beaucoup de programmes d'assemblage ont leur propre scaffoldeur. Néanmoins cette étape
+est celle où la probabilité de générer des erreurs d'assemblage est la plus importante. \\
+
+De ce fait, les fonctionnalités que nous proposons se substituent à cette dernière étape. L'idée est de proposer des 
+méthodes qui permettent de décrire les données et de laisser la main sur le choix des paramètres qui conduisent d'une étape
+à l'autre. De même, le résultat d'assemblage proposé, sous forme d'un graphe, permet une analyse exploratoire des données et 
+le choix du ou des scaffolds pourra se faire à la lumière de connaissances supplémentaires. \\
+
+Nous restreignons nos propos aux  méthodes d'assemblage que sont les graphes de De Bruijn, les plus utilisées pour assembler des génomes à partir de courtes 
+séquences. Le résultat d'une expérience d'assemblage sera donc composé de plusieurs contigs dont les extremités seront théoriquement des
+zones répétées et/ou des zones de bifurcation. Un choix primordial pour l'étape de scaffolding sera donc l'interval de confiance pour 
+la taille d'insert. Il est alors intéressant de pouvoir explorer sa distribution et collecter quelques statistiques descriptives avant de
+choisir les paires à conserver pour générer le graphe des liens entre les contigs. \\
+
+
+\subsection{Implémentation}
+
+Les fonctionnalités que nous avons implémentées sont consignées dans une librairie de fonctions qui se compose de:
+
+\begin{itemize}
+\item{La classe ContigLinkViewer} Celle-ci permet de stocker toutes les statistiques descriptives et tableaux de résultats qui auront été obtenus au cours du scaffolding. 
+\item{Quatre méthodes associées} qui permettent de réaliser l'analyse de l'assemblage, à savoir: l'estimation des tailles
+d'insert (EstimateInsertSizeFromSame, EstimateInsertSizeFromdiff), l'estimation de la qualité de l'assemblage (EstimateAssQual)
+et la création du tableau donnant le nombre de paires qui supportent la connection entre deux contigs étant donné un intervalle de confiance pour la taille d'insert (ContigLinkCount).
+\end{itemize}
+
+Tous les détails des choix d'implémentations se trouvent dans l'aide des fonctions.  
+
+\section{Exemple: Assemblage du génome mitochondrial de l'orge}
+
+\subsection{Les données}
+
+Il s'agit du genome mitochondrial de l'orge purifié pour réduire les contaminations chloroplastiques et nucléaires. Il a été séquencé par deux types de librairies de séquences pairées.
+\begin{itemize}
+\item{Mate-paire} X
+\item{Paired-end} X
+\end{itemize}
+
+Si les deux librairies ont servi à l'assemblage, seule la librairie des mate-paires a été utilisées pour l'alignement sur les contigs.
+
+\subsection{Le programme d'assemblage utilisé}
+
+  Allpaths-LG est un programme recommandé pour assembler des genomes à partir de courtes séquences (autour de 100 pb et moins) pairées aux tailles d'insert variable. Ce programme requiert au moins deux librairies différentes pour fonctionner : une mate-paire et une paired-end.
+  
+\subsection{Le fichier d'entrée}
+
+  Il s'agit d'un fichier contenant les alignements, au format sam, des séquences de la librairie de mates (préalablement reverse-complémentée) sur les contigs.
+  Les singletons et les reads non mappées ont été retirés puis le fichier sam a été transformé en bam avant d'être trié et indexé. 
+  Les commandes permettant de l'obtenir:
+\begin{itemize}
+  \item{Aligner les mates sur les contigs}
+  bwa aln -t 5 CONTIGS MATE\_1 > mate1.sai \\
+  bwa aln -t 5 CONTIGS MATE\_2 > mate2.sai \\
+  bwa sampe -a 5000 -n 1 CONTIGS mate1.sai mate2.sai MATE\_1 MATE\_2 > Alignements\_Mates\_Sur\_Contig.sam \\
+  \item{Transformer le sam en bam} \\
+  samtools view -Sbh Alignements\_Mates\_Sur\_Contig.sam > Alignements\_Mates\_Sur\_Contig.bam \\
+  samtools sort  Alignements\_Mates\_Sur\_Contig.bam  Alignements\_Mates\_Sur\_Contig\_sorted \\
+  \item{Retirer les paires non mappés et les singletons} \\
+  samtools view -b -h -F 8 Alignements\_Mates\_Sur\_Contig\_sorted.bam > tmp.bam \\
+  samtools view -b -h -F 4 tmp.bam > Alignements\_Mates\_Sur\_Contig\_sorted\_F8\_F4.bam \\
+  \item{Indexer le bam} \\
+  samtools index Alignements\_Mates\_Sur\_Contig\_sorted\_F8\_F4.bam \\
+\end{itemize}
+
+\subsection{Les dépendances}
+ 
+ Les fonctionalités implémentées dépendent de plusieurs librairies de fonctions:
+  
+<<Packages, echo=TRUE>>=
+options(width=80)
+# Librairie de fonctions permettant de manipuler des fichiers sam
+library(Rsamtools)
+# Librairie de fonctions d'optimisation du langage vectoriel
+library(plyr)
+# Librairie de fonctions pour dessiner des graphes
+library(Rgraphviz)
+# Librairie de fonctions graphiques
+library(ggplot2)
+library(gridExtra)
+library(xtable)
+# A remplacer par l'appel à notre librairie
+source("ContigLink.R")
+load("CLV.Rdata")
+@ 
+  
+ 
+\subsection{Déroulement d'une analyse: Exemple pour les données de séquences mitochondrial de l'orge (projet C. Rizzolati)}
+
+\subsubsection{Instancier la classe et estimer les tailles d'inserts}
+
+<<CLV1, echo=TRUE, eval=FALSE>>=
+
+# Instancier un objet de la class ContigLinkViewer
+
+CLV <- new("ContigLinkViewer", 
+           BamFile = "Fm2pc_MP_mate_sorted_F8_F4.bam", 
+           ExperimentalInsertSize=2000)
+
+# Calculer les tailles d'insert à partir des paires de séquences qui 
+# s'alignent sur un même contig 
+
+CLV <- EstimateInsertSizeFromSame(CLV)
+
+# Calculer les tailles d'insert à partir des paires de séquences qui 
+# s'alignent sur deux contigs differents 
+
+CLV <- EstimateInsertSizeFromDiff(CLV)
+@
+
+\subsubsection{Visualizer les distribution des tailles d'inserts}
+
+<<IsizeViz,echo=TRUE,fig=TRUE>>=
+qplot1 <- qplot(Isize, data=CLV@dfSame, geom="histogram",
+                main="Insert size distribution of paired \n mapping on the same contigs",
+                xlim="Insert Size")
+qplot2 <- qplot(Isize, data=CLV@dfDiff, geom="histogram",
+                main="Insert size distribution of paired \n mapping on different contigs",
+                xlim="Insert Size")
+grid.arrange(qplot1+theme(plot.title=element_text(size=10)),
+             qplot2+theme(plot.title=element_text(size=10)), ncol=2)
+@
+
+\subsubsection{Estimer la qualité d'assemblage}
+
+<<CLV2, echo=TRUE, eval=FALSE>>=
+
+# Estimation de la qualité de l'assemblage en demandant une estimation
+# de l'interval confiance pour la taille d'insert
+
+CLV <- EstimateAssQual(CLV,SdNumber=1)
+
+# NB: By default EstimateCutOff is TRUE and InsertSize parameters are estimated. 
+# CLV <- EstimateAssQual(CLV,
+#                       EstimateCutOff=FALSE,
+#                       Min=0,
+#                       Max=CLV@InsertSizeSame["Mean"]+2*CLV@InsertSizeSame["sd"])
+@
+
+<<TabViz1,echo=TRUE,results=tex>>=
+print(xtable(CLV@AssQual$dfSameQualAssByContig[1:20,]),floating="F")
+@
+
+\subsubsection{Création du tableau donnant le nombre de paires de séquences qui relient deux contigs}
+
+<<CLV3,  echo=TRUE, eval=FALSE>>=
+# Création du tableau donnant le nombre de paires de séquences reliant deux contigs
+# Retrait des liens entres les contigs inferieurs à 100.
+
+CLV <- ContigLinkCount(CLV, MinCount=100)
+@
+
+<<TabViz2,echo=TRUE,results=tex>>=
+print(xtable(CLV@ContigLinkCount$CLC),floating="F")
+@
+
+\subsection{Les exports: graphes et tableaux}
+  
+<<graph, echo =TRUE ,fig=TRUE>>=
+
+# Création du graph
+plot(CLV)
+
+# Export du graphe
+# pdf("Graph_CLC.pdf")
+# plot(CLV)
+# dev.off()
+
+# Export du tableau ContigLinkCount
+write.table(CLV@ContigLinkCount$CLC, 
+            file=paste("Df_CLC",CLV@ContigLinkCount$MinCount,".tab",sep=""),
+            sep="\t",row.names=FALSE,quote=FALSE)
+
+# Export du tableau dfDiffQualAssByContig du slot AssQual
+write.table(CLV@AssQual[[4]], file="dfDiffQualAssByContig.txt",sep="\t",
+            row.names=FALSE,quote=FALSE)
+@
+
+Le nom des contigs figurent dans les noeuds du graphe. L'orientation des contigs est donnée
+par le suffixe R ou F. La couleur du noeud est proportionnelle à la taille des contigs (rouge pour les grandes tailles, bleu pour les petites). La légende sur les arrêtes donne le nombre de paires de séquences qui soutiennent la connection entre deux contigs. 
+
+<<echo=FALSE,fig=TRUE, eval=FALSE>>=
+ggplot(data=CLV@dfSame) +
+  geom_histogram(aes(x=Isize),binwidth=1000) + 
+  facet_wrap(~seqnames.1,ncol=4,nrow=6)
+@
+
+
+\section{Session Information}
+
+<<sessionInfo, echo=FALSE>>=
+sessionInfo()
+@
+
+\end{document}
