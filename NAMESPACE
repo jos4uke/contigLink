@@ -1,0 +1,19 @@
+exportPattern("^[[:alpha:]]+")
+exportMethods(
+    "ContigLinkCount",
+    "EstimateAssQual",
+    "EstimateInsertSizeFromDiff",
+    "EstimateInsertSizeFromSame",
+    "GetAssQual",
+    "GetInsertSizeDiff",
+    "GetInsertSizeSame",
+    "initialize",
+    "plot",
+    "SetAssQual<-",
+    "SetContigLinkCount<-",
+    "SetInsertSizeDiff<-",
+    "SetInsertSizeSame<-" 
+)
+exportClasses(
+    "ContigLinkViewer" 
+)
