@@ -1,0 +1,5 @@
+README
+# this command does not work: no figures created
+R --vanilla CMD Sweave file.Rnw
+# this command works: figures are created
+R --vanilla CMD Sweave --pdf file.Rnw
