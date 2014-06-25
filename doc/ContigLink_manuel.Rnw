@@ -127,22 +127,22 @@ library(Rgraphviz)
 library(ggplot2)
 library(gridExtra)
 library(xtable)
+library(cacheSweave)
 # A remplacer par l'appel à notre librairie
-source("ContigLink.R")
-load("CLV.Rdata")
+source("../R/ContigLink.R")
 @ 
   
  
-\subsection{Déroulement d'une analyse: Exemple pour les données de séquences mitochondrial de l'orge (projet C. Rizzolati)}
+\subsection{Déroulement d'une analyse: Exemple pour les données de séquences mitochondrial de l'orge (projet C. Rizzolatti)}
 
 \subsubsection{Instancier la classe et estimer les tailles d'inserts}
 
-<<CLV1, echo=TRUE, eval=FALSE>>=
+<<CLV1, echo=TRUE, eval=TRUE, cache=TRUE>>=
 
 # Instancier un objet de la class ContigLinkViewer
 
 CLV <- new("ContigLinkViewer", 
-           BamFile = "Fm2pc_MP_mate_sorted_F8_F4.bam", 
+           BamFile = "../inst/extdata/Fm2pc_MP_mate_sorted_F8_F4.bam", 
            ExperimentalInsertSize=2000)
 
 # Calculer les tailles d'insert à partir des paires de séquences qui 
@@ -154,10 +154,13 @@ CLV <- EstimateInsertSizeFromSame(CLV)
 # s'alignent sur deux contigs differents 
 
 CLV <- EstimateInsertSizeFromDiff(CLV)
+
 @
 
-\subsubsection{Visualizer les distribution des tailles d'inserts}
+\subsubsection{Visualiser les distribution des tailles d'inserts}
 
+\begin{figure}
+\begin{center}
 <<IsizeViz,echo=TRUE,fig=TRUE>>=
 qplot1 <- qplot(Isize, data=CLV@dfSame, geom="histogram",
                 main="Insert size distribution of paired \n mapping on the same contigs",
@@ -168,10 +171,16 @@ qplot2 <- qplot(Isize, data=CLV@dfDiff, geom="histogram",
 grid.arrange(qplot1+theme(plot.title=element_text(size=10)),
              qplot2+theme(plot.title=element_text(size=10)), ncol=2)
 @
+\end{center}
+\caption{Distribution des tailles d'inserts pour les paires mappant sur un meme contig et sur différents contigs}
+\label{fig:one}
+\end{figure}
+
+\pagebreak
 
 \subsubsection{Estimer la qualité d'assemblage}
 
-<<CLV2, echo=TRUE, eval=FALSE>>=
+<<CLV2, echo=TRUE, eval=TRUE, cache=TRUE>>=
 
 # Estimation de la qualité de l'assemblage en demandant une estimation
 # de l'interval confiance pour la taille d'insert
@@ -191,7 +200,7 @@ print(xtable(CLV@AssQual$dfSameQualAssByContig[1:20,]),floating="F")
 
 \subsubsection{Création du tableau donnant le nombre de paires de séquences qui relient deux contigs}
 
-<<CLV3,  echo=TRUE, eval=FALSE>>=
+<<CLV3,  echo=TRUE, eval=TRUE, cache=TRUE>>=
 # Création du tableau donnant le nombre de paires de séquences reliant deux contigs
 # Retrait des liens entres les contigs inferieurs à 100.
 
@@ -204,6 +213,8 @@ print(xtable(CLV@ContigLinkCount$CLC),floating="F")
 
 \subsection{Les exports: graphes et tableaux}
   
+\begin{figure}
+\begin{center}
 <<graph, echo =TRUE ,fig=TRUE>>=
 
 # Création du graph
@@ -223,15 +234,25 @@ write.table(CLV@ContigLinkCount$CLC,
 write.table(CLV@AssQual[[4]], file="dfDiffQualAssByContig.txt",sep="\t",
             row.names=FALSE,quote=FALSE)
 @
+\end{center}
+\caption{Figures et tableaux}
+\label{fig:two}
+\end{figure}
 
 Le nom des contigs figurent dans les noeuds du graphe. L'orientation des contigs est donnée
 par le suffixe R ou F. La couleur du noeud est proportionnelle à la taille des contigs (rouge pour les grandes tailles, bleu pour les petites). La légende sur les arrêtes donne le nombre de paires de séquences qui soutiennent la connection entre deux contigs. 
 
-<<echo=FALSE,fig=TRUE, eval=FALSE>>=
+\begin{figure}
+\begin{center}
+<<ContigIsizeViz,echo=TRUE,fig=TRUE>>=
 ggplot(data=CLV@dfSame) +
-  geom_histogram(aes(x=Isize),binwidth=1000) + 
+  geom_histogram(aes(x=CLV@dfSame$Isize),binwidth=1000) + 
   facet_wrap(~seqnames.1,ncol=4,nrow=6)
 @
+\end{center}
+\caption{Histogramme de la distribution des tailles d'inserts par contig}
+\label{fig:three}
+\end{figure}
 
 
 \section{Session Information}
