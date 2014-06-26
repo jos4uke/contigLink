@@ -211,6 +211,8 @@ CLV <- ContigLinkCount(CLV, MinCount=100)
 print(xtable(CLV@ContigLinkCount$CLC),floating="F")
 @
 
+\pagebreak
+
 \subsection{Les exports: graphes et tableaux}
   
 \begin{figure}
@@ -254,6 +256,7 @@ ggplot(data=CLV@dfSame) +
 \label{fig:three}
 \end{figure}
 
+\pagebreak
 
 \section{Session Information}
 
